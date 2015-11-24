@@ -77,25 +77,10 @@ public class StudPoker extends Poker {
 		// use original cards so none are duplicated
 		final String[] deck = Poker.remdeck(holeCardsOrig, blockers, board);
 		
-		// merge board with hole cards
-		final String[][] holeCards = new String[holeCardsOrig.length][];
-		int nonblanks = 0;
-		if (board != null && board.length > 0) {
-			nonblanks++;
-		}
-		for (int n = 0; n < holeCardsOrig.length; n++) {
-			nonblanks += holeCardsOrig[n].length;
-			holeCards[n] = merge(board, holeCardsOrig[n], true);
-		}
+		int samples = samples(board, holeCardsOrig);
+		int blanks = blanks(board, holeCardsOrig);
+		String[][] holeCards = holeCards(board, holeCardsOrig);
 		
-		// how many cards do we need to pick
-		int blanks;
-		if (holeCards.length == 8) {
-			// last card will be comm card
-			blanks = holeCards.length * 6 + 1 - nonblanks;
-		} else {
-			blanks = holeCards.length * 7 - nonblanks;
-		}
 		
 		//System.out.println("deck: " + deck.length + " nonblanks: " + nonblanks + " blanks: " + blanks);
 		//BigInteger combs = MathsUtil.bincoffslow(deck.length, blanks);
@@ -138,14 +123,11 @@ public class StudPoker extends Poker {
 			MEquityUtil.updateCurrent(meqs, Equity.Type.HILO_AFLO8_HALF, lovals);
 		}
 		
-		final int samples;
 		// how many hands had lo
 		int lowCount = 0;
 		
 		if (blanks == 0) {
 			System.out.println("no blanks, using current values");
-			samples = 1;
-			
 			// no blank cards, just use current as only sample
 			if (hasLow) {
 				lowCount = 1;
@@ -157,7 +139,6 @@ public class StudPoker extends Poker {
 			
 		} else {
 			final Random r = new Random();
-			samples = 10000;
 			System.out.println("blanks: " + blanks + ", using " + samples + " samples");
 			
 			// sample remaining cards, but exact enumeration might be not be very big
@@ -215,6 +196,48 @@ public class StudPoker extends Poker {
 		
 		MEquityUtil.summariseMEquities(meqs, samples, lowCount);
 		return meqs;
+	}
+
+	private int samples(String[] board, String[][] holeCardsOrig) {
+		int blanks = blanks(board, holeCardsOrig);
+		final int samples;
+		if (blanks == 0) {
+			samples = 1;
+		} else {
+			samples = 10000;
+		}
+		return samples;
+	}
+
+	private int blanks(String[] board, String[][] holeCardsOrig) {
+		String[][] holeCards = holeCards(board, holeCardsOrig);
+		int nonblanks = nonblanks(board, holeCardsOrig);
+		int blanks;
+		if (holeCards.length == 8) {
+			blanks = holeCards.length * 6 + 1 - nonblanks;
+		} else {
+			blanks = holeCards.length * 7 - nonblanks;
+		}
+		return blanks;
+	}
+
+	private String[][] holeCards(String[] board, String[][] holeCardsOrig) {
+		final String[][] holeCards = new String[holeCardsOrig.length][];
+		for (int n = 0; n < holeCardsOrig.length; n++) {
+			holeCards[n] = merge(board, holeCardsOrig[n], true);
+		}
+		return holeCards;
+	}
+
+	private int nonblanks(String[] board, String[][] holeCardsOrig) {
+		int nonblanks = 0;
+		if (board != null && board.length > 0) {
+			nonblanks++;
+		}
+		for (int n = 0; n < holeCardsOrig.length; n++) {
+			nonblanks += holeCardsOrig[n].length;
+		}
+		return nonblanks;
 	}
 	
 	@Override
